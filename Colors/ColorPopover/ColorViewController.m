@@ -9,65 +9,39 @@
 #import "ColorViewController.h"
 
 @interface ColorViewController ()
-@property (nonatomic, strong) UIScrollView* scrollView;
-@property (nonatomic, strong) NSArray* colorButtons;
+
 @end
 
 @implementation ColorViewController
 
-const CGSize kPortraitContentSize = { 240, 250 };
-const CGSize kLandscapeContentSize = { 320, 170 };
-
 @synthesize delegate;
 
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
-    return YES;
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        self.contentSizeForViewInPopover = CGSizeMake(240,310);
+    }
+    return self;
 }
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    
-	if (UIInterfaceOrientationIsPortrait(self.interfaceOrientation))
-	{
-		self.contentSizeForViewInPopover = kPortraitContentSize;
-	}
-	else
-	{
-		self.contentSizeForViewInPopover = kLandscapeContentSize;
-	}
-    
-	CGRect scrollViewFrame = CGRectZero;
-	scrollViewFrame.size = self.contentSizeForViewInPopover;
-	self.scrollView = [[UIScrollView alloc] initWithFrame:scrollViewFrame];
-	[self.view addSubview:self.scrollView];
-    
-	[self createSimplyfiedOrdenatedColorsArray];
-    [self setupColorButtonsForInterfaceOrientation:self.interfaceOrientation];
+    [self createSimplyfiedOrdenatedColorsArray];
+    [self loadColorButtons];
+	// Do any additional setup after loading the view.
 }
 
--(void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration
+- (void)viewDidUnload
 {
-	[super willRotateToInterfaceOrientation:toInterfaceOrientation duration:duration];
-    
-	if (UIInterfaceOrientationIsPortrait(toInterfaceOrientation))
-	{
-		self.contentSizeForViewInPopover = kPortraitContentSize;
-	}
-	else
-	{
-		self.contentSizeForViewInPopover = kLandscapeContentSize;
-	}
-	
-	[UIView animateWithDuration:duration
-					 animations:^{
-						 CGRect scrollViewFrame = CGRectZero;
-						 scrollViewFrame.size = self.contentSizeForViewInPopover;
-						 self.scrollView.frame = scrollViewFrame;
-                         
-						 [self setupColorButtonsForInterfaceOrientation:toInterfaceOrientation];
-					 }];
+    [super viewDidUnload];
+    // Release any retained subviews of the main view.
+}
+
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return (interfaceOrientation == UIInterfaceOrientationPortrait);
 }
 
 -(void) createSimplyfiedOrdenatedColorsArray{
@@ -131,72 +105,62 @@ const CGSize kLandscapeContentSize = { 320, 170 };
 }
 
 
--(void)setupColorButtonsForInterfaceOrientation:(UIInterfaceOrientation)orientation{
-	int iMax = 7;
-	int jMax = 5;
+-(void)loadColorButtons{
+    
+    UIScrollView *scroll = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, 240, 312)];
+    
+    scroll.contentSize = CGSizeMake(200, 312);
+    [self.view addSubview:scroll];
+    
+	if (self.buttonCollection != nil) {
+		for (ColorButton *colorButton in self.buttonCollection) {
+			[colorButton removeFromSuperview];
+		}
+		self.buttonCollection = nil;
+	}
+    
+	self.buttonCollection = [[NSMutableArray alloc]init];
 	
-	if (UIInterfaceOrientationIsLandscape(orientation))
-	{
-		int tmp = iMax;
-		iMax = jMax;
-		jMax = tmp;
-	}
-    
-    self.scrollView.contentSize = CGSizeMake(jMax * 40, (iMax + 1) * 40);
-    
-	if (nil == self.colorButtons)
-	{
-		NSMutableArray* newColorButtons = [NSMutableArray arrayWithCapacity:iMax * jMax];
-		int colorNumber = 0;
-		for (int i=0; i<=iMax; i++) {
-			for (int j=0; j<=jMax; j++) {
-				
-				ColorButton *colorButton = [ColorButton buttonWithType:UIButtonTypeCustom];
-				colorButton.frame = CGRectMake(3+(j*40), 3+(i*40), 35, 35);
-				[colorButton addTarget:self action:@selector(buttonPushed:) forControlEvents:UIControlEventTouchUpInside];
-				
-				[colorButton setSelected:NO];
-				[colorButton setNeedsDisplay];
-				[colorButton setBackgroundColor:[GzColors colorFromHex:[self.colorCollection objectAtIndex:colorNumber]]];
-				colorButton.accessibilityLabel = [GzColors accessibilityLabelForColor:[self.colorCollection objectAtIndex:colorNumber]];
-				[colorButton setHexColor:[self.colorCollection objectAtIndex:colorNumber]];
-				
-				colorButton.layer.cornerRadius = 4;
-				colorButton.layer.masksToBounds = YES;
-				colorButton.layer.borderColor = [UIColor blackColor].CGColor;
-				colorButton.layer.borderWidth = 1.0f;
-				
-				colorButton.tag = colorNumber;
-				
-				CAGradientLayer *gradient = [CAGradientLayer layer];
-				gradient.frame = colorButton.bounds;
-				//               gradient.colors = [NSArray arrayWithObjects:(id)[[UIColor blackColor] CGColor], (id)[[UIColor whiteColor] CGColor], nil];
-				gradient.colors = [NSArray arrayWithObjects:(id)[ [UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.45] CGColor], (id)[[UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.1]  CGColor], nil];
-				
-				[colorButton.layer insertSublayer:gradient atIndex:0];
-				
-				colorNumber ++;
-				
-				[newColorButtons addObject:colorButton];
-				
-				[self.scrollView addSubview:colorButton];
-			}
-		}
-		
-		self.colorButtons = [newColorButtons copy];
-	}
-	else
-	{
-		for (UIButton* colorButton in self.colorButtons)
-		{
-			int colorNumber = colorButton.tag;
-			
-			int j = colorNumber % (jMax + 1);
-			int i = colorNumber / (jMax + 1);
-			
-			colorButton.frame = CGRectMake(3+(j*40), 3+(i*40), 35, 35);
-		}
-	}
+    dispatch_queue_t myQueue = dispatch_queue_create("com.gazapps.myqueue", 0);
+    dispatch_async(myQueue, ^{
+        int colorNumber = 0;
+        for (int i=0; i<=7; i++) {
+            for (int j=0; j<=5; j++) {
+                
+                ColorButton *colorButton = [ColorButton buttonWithType:UIButtonTypeCustom];
+                colorButton.frame = CGRectMake(3+(j*40), 2+(i*38), 35, 35);
+                [colorButton addTarget:self action:@selector(buttonPushed:) forControlEvents:UIControlEventTouchUpInside];
+                
+                [colorButton setSelected:NO];
+                [colorButton setNeedsDisplay];
+                [colorButton setBackgroundColor:[GzColors colorFromHex:[self.colorCollection objectAtIndex:colorNumber]]];
+                [colorButton setHexColor:[self.colorCollection objectAtIndex:colorNumber]];
+                
+                colorButton.layer.cornerRadius = 4;
+                colorButton.layer.masksToBounds = YES;
+                colorButton.layer.borderColor = [UIColor blackColor].CGColor;
+                colorButton.layer.borderWidth = 1.0f;
+                
+                CAGradientLayer *gradient = [CAGradientLayer layer];
+                gradient.frame = colorButton.bounds;
+                //               gradient.colors = [NSArray arrayWithObjects:(id)[[UIColor blackColor] CGColor], (id)[[UIColor whiteColor] CGColor], nil];
+                gradient.colors = [NSArray arrayWithObjects:(id)[ [UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.45] CGColor], (id)[[UIColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:0.1]  CGColor], nil];
+                
+                
+                [colorButton.layer insertSublayer:gradient atIndex:0];
+                
+                
+                colorNumber ++;
+                
+                
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    [self.buttonCollection addObject:colorButton];
+                    [scroll addSubview:colorButton];
+                });//end block
+            }
+        }
+        
+    });//end block
 }
 
 
